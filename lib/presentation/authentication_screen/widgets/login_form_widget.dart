@@ -145,40 +145,6 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
                   ),
           ),
         ),
-        SizedBox(height: 2.h),
-        Container(
-          padding: EdgeInsets.all(3.w),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(2.w),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Demo Credentials:',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              SizedBox(height: 1.h),
-              Text(
-                'Tenant: tenant@freddie.com / Tenant@123',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              SizedBox(height: 0.5.h),
-              Text(
-                'Landlord: landlord@freddie.com / Landlord@123',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

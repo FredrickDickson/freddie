@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sizer/sizer.dart';
 
+import '../../core/providers/auth_provider.dart';
 import './widgets/login_form_widget.dart';
 import './widgets/register_form_widget.dart';
 import './widgets/social_login_widget.dart';
@@ -8,14 +9,14 @@ import './widgets/social_login_widget.dart';
 /// Authentication Screen enables secure user login/registration with mobile-optimized input methods.
 /// Implements segmented control for Login/Register mode switching with data persistence.
 /// Integrates biometric authentication and KYC verification flow.
-class AuthenticationScreen extends StatefulWidget {
+class AuthenticationScreen extends ConsumerStatefulWidget {
   const AuthenticationScreen({Key? key}) : super(key: key);
 
   @override
-  State<AuthenticationScreen> createState() => _AuthenticationScreenState();
+  ConsumerState<AuthenticationScreen> createState() => _AuthenticationScreenState();
 }
 
-class _AuthenticationScreenState extends State<AuthenticationScreen>
+class _AuthenticationScreenState extends ConsumerState<AuthenticationScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
@@ -28,7 +29,6 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
       TextEditingController();
   final TextEditingController _nameController = TextEditingController();
 
-  bool _isLoading = false;
   bool _termsAccepted = false;
 
   @override
@@ -51,24 +51,17 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    // Simulate authentication
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() => _isLoading = false);
-
-    // Mock credentials validation
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email == 'tenant@freddie.com' && password == 'Tenant@123') {
-      _showSuccessAndNavigate('Tenant login successful');
-    } else if (email == 'landlord@freddie.com' && password == 'Landlord@123') {
-      _showSuccessAndNavigate('Landlord login successful');
-    } else {
-      _showError('Invalid credentials. Please check your email and password.');
-    }
+    await ref.read(authNotifierProvider.notifier).signIn(email, password);
+
+    final authState = ref.read(authNotifierProvider);
+    authState.when(
+      data: (_) => _showSuccessAndNavigate('Login successful'),
+      error: (error, _) => _showError(error.toString()),
+      loading: () {},
+    );
   }
 
   Future<void> _handleRegister() async {
@@ -79,15 +72,18 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
       return;
     }
 
-    setState(() => _isLoading = true);
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
-    // Simulate registration
-    await Future.delayed(const Duration(seconds: 2));
+    await ref.read(authNotifierProvider.notifier).signUp(email, password);
 
-    setState(() => _isLoading = false);
-
-    _showSuccessAndNavigate(
-      'Registration successful! Please complete KYC verification.',
+    final authState = ref.read(authNotifierProvider);
+    authState.when(
+      data: (_) => _showSuccessAndNavigate(
+        'Registration successful! Please check your email for verification.',
+      ),
+      error: (error, _) => _showError(error.toString()),
+      loading: () {},
     );
   }
 
@@ -117,13 +113,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   }
 
   Future<void> _handleSocialLogin(String provider) async {
-    setState(() => _isLoading = true);
-
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() => _isLoading = false);
-
-    _showSuccessAndNavigate('$provider login successful');
+    // Social login implementation will be added in a future phase
+    _showError('$provider login is not yet implemented.');
   }
 
   @override
@@ -230,6 +221,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   }
 
   Widget _buildFormContent(ThemeData theme) {
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.isLoading;
+
     return Form(
       key: _formKey,
       child: SizedBox(
@@ -241,7 +235,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
             LoginFormWidget(
               emailController: _emailController,
               passwordController: _passwordController,
-              isLoading: _isLoading,
+              isLoading: isLoading,
               onLogin: _handleLogin,
               onForgotPassword: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -258,7 +252,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
               passwordController: _passwordController,
               confirmPasswordController: _confirmPasswordController,
               termsAccepted: _termsAccepted,
-              isLoading: _isLoading,
+              isLoading: isLoading,
               onTermsChanged: (value) =>
                   setState(() => _termsAccepted = value ?? false),
               onRegister: _handleRegister,
