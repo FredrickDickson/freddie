@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/app_export.dart';
+import '../../../core/models/property_model.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
 /// Property header widget displaying title, price, location, and verification badge
 class PropertyHeaderWidget extends StatelessWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const PropertyHeaderWidget({Key? key, required this.property})
     : super(key: key);
+
+  String _formatPrice(double price) {
+    final formatter = NumberFormat.currency(
+      symbol: '₦',
+      decimalDigits: 0,
+    );
+    return formatter.format(price);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +41,7 @@ class PropertyHeaderWidget extends StatelessWidget {
         children: [
           // Property Title
           Text(
-            property["title"] as String,
+            property.title,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface,
@@ -43,7 +53,7 @@ class PropertyHeaderWidget extends StatelessWidget {
 
           // Price
           Text(
-            property["price"] as String,
+            _formatPrice(property.price),
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: theme.colorScheme.primary,
@@ -62,7 +72,7 @@ class PropertyHeaderWidget extends StatelessWidget {
               SizedBox(width: 1.w),
               Expanded(
                 child: Text(
-                  property["location"] as String,
+                  property.address,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -70,7 +80,7 @@ class PropertyHeaderWidget extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (property["isVerified"] == true) ...[
+              if (property.isVerified) ...[
                 SizedBox(width: 2.w),
                 Container(
                   padding: EdgeInsets.symmetric(

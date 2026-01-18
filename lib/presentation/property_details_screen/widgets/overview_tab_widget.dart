@@ -3,11 +3,12 @@ import 'package:sizer/sizer.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/app_export.dart';
+import '../../../core/models/property_model.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
 /// Overview tab displaying property description, features, and amenities
 class OverviewTabWidget extends StatefulWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const OverviewTabWidget({Key? key, required this.property}) : super(key: key);
 
@@ -23,18 +24,7 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
   @override
   void initState() {
     super.initState();
-    _initializeBookedDates();
-  }
-
-  void _initializeBookedDates() {
-    if (widget.property["propertyType"] == "Short-let") {
-      final bookedDates = widget.property["bookedDates"] as List<dynamic>?;
-      if (bookedDates != null) {
-        for (var dateStr in bookedDates) {
-          _bookedDates.add(DateTime.parse(dateStr as String));
-        }
-      }
-    }
+    // In a real app, we would fetch booked dates from Supabase for short-lets
   }
 
   @override
@@ -55,7 +45,7 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
           ),
           SizedBox(height: 1.h),
           Text(
-            widget.property["description"] as String,
+            widget.property.description,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               height: 1.5,
@@ -75,18 +65,20 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
           SizedBox(height: 3.h),
 
           // Amenities Section
-          Text(
-            'Amenities',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
+          if (widget.property.amenities.isNotEmpty) ...[
+            Text(
+              'Amenities',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          SizedBox(height: 1.5.h),
-          _buildAmenities(theme),
-          SizedBox(height: 3.h),
+            SizedBox(height: 1.5.h),
+            _buildAmenities(theme),
+            SizedBox(height: 3.h),
+          ],
 
           // Availability Calendar (for short-lets)
-          if (widget.property["propertyType"] == "Short-let") ...[
+          if (widget.property.category == "Short-let") ...[
             Text(
               'Availability Calendar',
               style: theme.textTheme.titleLarge?.copyWith(
@@ -103,13 +95,18 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
   }
 
   Widget _buildKeyFeatures(ThemeData theme) {
-    final features = widget.property["keyFeatures"] as List<dynamic>;
+    final List<Map<String, dynamic>> features = [
+      {"icon": "bed", "label": "Bedrooms", "value": "${widget.property.bedrooms}"},
+      {"icon": "bathtub", "label": "Bathrooms", "value": "${widget.property.bathrooms}"},
+      if (widget.property.area != null)
+        {"icon": "square_foot", "label": "Area", "value": widget.property.area},
+      {"icon": "home", "label": "Type", "value": widget.property.propertyType},
+    ];
 
     return Wrap(
       spacing: 3.w,
       runSpacing: 1.5.h,
       children: features.map((feature) {
-        final featureMap = feature as Map<String, dynamic>;
         return Container(
           width: 28.w,
           padding: EdgeInsets.all(3.w),
@@ -123,13 +120,13 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
           child: Column(
             children: [
               CustomIconWidget(
-                iconName: featureMap["icon"] as String,
+                iconName: feature["icon"] as String,
                 color: theme.colorScheme.primary,
                 size: 28,
               ),
               SizedBox(height: 1.h),
               Text(
-                featureMap["label"] as String,
+                feature["label"] as String,
                 style: theme.textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -137,7 +134,7 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
               ),
               SizedBox(height: 0.5.h),
               Text(
-                featureMap["value"] as String,
+                feature["value"] as String,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -150,17 +147,30 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
     );
   }
 
-  Widget _buildAmenities(ThemeData theme) {
-    final amenities = widget.property["amenities"] as List<dynamic>;
+  String _getAmenityIcon(String name) {
+    final icons = {
+      'WiFi': 'wifi',
+      'Parking': 'local_parking',
+      'Security': 'security',
+      'Generator': 'power',
+      'Water': 'water_drop',
+      'Air Conditioning': 'ac_unit',
+      'Kitchen': 'kitchen',
+      'Gym': 'fitness_center',
+      'Pool': 'pool',
+      'Garden': 'yard',
+    };
+    return icons[name] ?? 'check_circle';
+  }
 
+  Widget _buildAmenities(ThemeData theme) {
     return Wrap(
       spacing: 2.w,
       runSpacing: 1.h,
-      children: amenities.map((amenity) {
-        final amenityMap = amenity as Map<String, dynamic>;
+      children: widget.property.amenities.map((amenity) {
         return GestureDetector(
           onLongPress: () {
-            _showAmenityDescription(amenityMap["name"] as String);
+            _showAmenityDescription(amenity);
           },
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
@@ -175,13 +185,13 @@ class _OverviewTabWidgetState extends State<OverviewTabWidget> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 CustomIconWidget(
-                  iconName: amenityMap["icon"] as String,
+                  iconName: _getAmenityIcon(amenity),
                   color: theme.colorScheme.primary,
                   size: 18,
                 ),
                 SizedBox(width: 2.w),
                 Text(
-                  amenityMap["name"] as String,
+                  amenity,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface,
                   ),

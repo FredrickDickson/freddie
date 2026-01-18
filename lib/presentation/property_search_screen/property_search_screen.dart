@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 import 'package:sizer/sizer.dart';
 
 import '../../core/app_export.dart';
+import '../../core/providers/property_provider.dart';
+import '../../core/models/property_model.dart';
 import '../../widgets/custom_icon_widget.dart';
 import './widgets/filter_chips_widget.dart';
 import './widgets/filter_modal_widget.dart';
@@ -11,26 +16,26 @@ import './widgets/sort_bottom_sheet_widget.dart';
 
 /// Property Search Screen with advanced filtering and discovery tools
 /// Accessed via bottom tab navigation - content-only widget
-class PropertySearchScreen extends StatefulWidget {
+class PropertySearchScreen extends ConsumerStatefulWidget {
   const PropertySearchScreen({Key? key}) : super(key: key);
 
   @override
-  State<PropertySearchScreen> createState() => _PropertySearchScreenState();
+  ConsumerState<PropertySearchScreen> createState() => _PropertySearchScreenState();
 }
 
-class _PropertySearchScreenState extends State<PropertySearchScreen> {
+class _PropertySearchScreenState extends ConsumerState<PropertySearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   bool _isMapView = false;
-  bool _isLoading = false;
   String _selectedSort = 'Relevance';
 
   // Active filters
   Map<String, dynamic> _activeFilters = {
+    'query': '',
     'propertyType': null,
-    'priceRange': [0.0, 50000000.0],
-    'location': null,
+    'minPrice': 0.0,
+    'maxPrice': 50000000.0,
     'bedrooms': null,
   };
 
@@ -41,136 +46,14 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
     'Victoria Island apartments',
   ];
 
-  // Mock property data
-  final List<Map<String, dynamic>> _allProperties = [
-    {
-      "id": 1,
-      "title": "Luxury 3 Bedroom Apartment",
-      "location": "Lekki Phase 1, Lagos",
-      "price": "\\₦45,000,000",
-      "priceValue": 45000000,
-      "bedrooms": 3,
-      "bathrooms": 3,
-      "area": "120 sqm",
-      "propertyType": "Apartment",
-      "image":
-          "https://img.rocket.new/generatedImages/rocket_gen_img_1e13741fb-1766566954518.png",
-      "semanticLabel":
-          "Modern luxury apartment living room with floor-to-ceiling windows, contemporary furniture, and city skyline view",
-      "isVerified": true,
-      "isSaved": false,
-      "datePosted": "2 days ago",
-      "distance": "2.5 km away",
-      "amenities": ["Swimming Pool", "Gym", "24/7 Security"],
-    },
-    {
-      "id": 2,
-      "title": "Spacious 4 Bedroom Duplex",
-      "location": "Victoria Island, Lagos",
-      "price": "\\₦85,000,000",
-      "priceValue": 85000000,
-      "bedrooms": 4,
-      "bathrooms": 4,
-      "area": "250 sqm",
-      "propertyType": "House",
-      "image":
-          "https://img.rocket.new/generatedImages/rocket_gen_img_18d30bde1-1766936726876.png",
-      "semanticLabel":
-          "Elegant two-story duplex exterior with white facade, large windows, and landscaped front garden",
-      "isVerified": true,
-      "isSaved": true,
-      "datePosted": "1 week ago",
-      "distance": "5.8 km away",
-      "amenities": ["Garden", "Parking", "Generator"],
-    },
-    {
-      "id": 3,
-      "title": "Modern 2 Bedroom Flat",
-      "location": "Ikeja GRA, Lagos",
-      "price": "\\₦28,000,000",
-      "priceValue": 28000000,
-      "bedrooms": 2,
-      "bathrooms": 2,
-      "area": "85 sqm",
-      "propertyType": "Apartment",
-      "image":
-          "https://img.rocket.new/generatedImages/rocket_gen_img_1bebffcac-1765192413762.png",
-      "semanticLabel":
-          "Contemporary apartment interior with open-plan kitchen, dining area, and modern appliances",
-      "isVerified": false,
-      "isSaved": false,
-      "datePosted": "3 days ago",
-      "distance": "8.2 km away",
-      "amenities": ["Elevator", "Backup Water"],
-    },
-    {
-      "id": 4,
-      "title": "Executive 5 Bedroom Villa",
-      "location": "Banana Island, Lagos",
-      "price": "\\₦250,000,000",
-      "priceValue": 250000000,
-      "bedrooms": 5,
-      "bathrooms": 6,
-      "area": "450 sqm",
-      "propertyType": "Villa",
-      "image":
-          "https://images.unsplash.com/photo-1642329873337-24a26c287cce",
-      "semanticLabel":
-          "Luxurious waterfront villa with infinity pool, palm trees, and ocean view at sunset",
-      "isVerified": true,
-      "isSaved": false,
-      "datePosted": "5 days ago",
-      "distance": "12.5 km away",
-      "amenities": ["Private Beach", "Cinema Room", "Wine Cellar"],
-    },
-    {
-      "id": 5,
-      "title": "Cozy 1 Bedroom Studio",
-      "location": "Yaba, Lagos",
-      "price": "\\₦15,000,000",
-      "priceValue": 15000000,
-      "bedrooms": 1,
-      "bathrooms": 1,
-      "area": "45 sqm",
-      "propertyType": "Studio",
-      "image":
-          "https://img.rocket.new/generatedImages/rocket_gen_img_1fed1ead2-1767570684909.png",
-      "semanticLabel":
-          "Compact studio apartment with minimalist design, murphy bed, and efficient space utilization",
-      "isVerified": false,
-      "isSaved": true,
-      "datePosted": "1 day ago",
-      "distance": "3.7 km away",
-      "amenities": ["WiFi", "Furnished"],
-    },
-    {
-      "id": 6,
-      "title": "Elegant 3 Bedroom Penthouse",
-      "location": "Ikoyi, Lagos",
-      "price": "\\₦120,000,000",
-      "priceValue": 120000000,
-      "bedrooms": 3,
-      "bathrooms": 3,
-      "area": "180 sqm",
-      "propertyType": "Penthouse",
-      "image":
-          "https://img.rocket.new/generatedImages/rocket_gen_img_10f7fd659-1766936729005.png",
-      "semanticLabel":
-          "Upscale penthouse terrace with outdoor seating, city panorama, and evening lighting",
-      "isVerified": true,
-      "isSaved": false,
-      "datePosted": "4 days ago",
-      "distance": "6.3 km away",
-      "amenities": ["Rooftop Terrace", "Smart Home", "Concierge"],
-    },
-  ];
-
-  List<Map<String, dynamic>> _filteredProperties = [];
-
   @override
   void initState() {
     super.initState();
-    _filteredProperties = List.from(_allProperties);
+    _searchController.addListener(() {
+      setState(() {
+        _activeFilters['query'] = _searchController.text;
+      });
+    });
   }
 
   @override
@@ -181,27 +64,7 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
   }
 
   void _onSearchChanged(String query) {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate search delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        if (query.isEmpty) {
-          _filteredProperties = List.from(_allProperties);
-        } else {
-          _filteredProperties = _allProperties.where((property) {
-            final title = (property['title'] as String).toLowerCase();
-            final location = (property['location'] as String).toLowerCase();
-            final searchLower = query.toLowerCase();
-            return title.contains(searchLower) ||
-                location.contains(searchLower);
-          }).toList();
-        }
-        _isLoading = false;
-      });
-    });
+    // Handled by listener
   }
 
   void _onSearchSubmitted(String query) {
@@ -217,93 +80,14 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
 
   void _applyFilters(Map<String, dynamic> filters) {
     setState(() {
-      _activeFilters = filters;
-      _isLoading = true;
-    });
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _filteredProperties = _allProperties.where((property) {
-          // Property type filter
-          if (filters['propertyType'] != null &&
-              property['propertyType'] != filters['propertyType']) {
-            return false;
-          }
-
-          // Price range filter
-          final priceRange = filters['priceRange'] as List<double>;
-          final propertyPrice = property['priceValue'] as int;
-          if (propertyPrice < priceRange[0] || propertyPrice > priceRange[1]) {
-            return false;
-          }
-
-          // Bedrooms filter
-          if (filters['bedrooms'] != null &&
-              property['bedrooms'] != filters['bedrooms']) {
-            return false;
-          }
-
-          // Location filter
-          if (filters['location'] != null &&
-              !(property['location'] as String).contains(filters['location'])) {
-            return false;
-          }
-
-          return true;
-        }).toList();
-
-        _applySorting();
-        _isLoading = false;
-      });
+      _activeFilters = {
+        ..._activeFilters,
+        ...filters,
+      };
     });
   }
 
-  void _applySorting() {
-    switch (_selectedSort) {
-      case 'Price (Low to High)':
-        _filteredProperties.sort(
-          (a, b) => (a['priceValue'] as int).compareTo(b['priceValue'] as int),
-        );
-        break;
-      case 'Price (High to Low)':
-        _filteredProperties.sort(
-          (a, b) => (b['priceValue'] as int).compareTo(a['priceValue'] as int),
-        );
-        break;
-      case 'Date Listed':
-        // Already in order by date
-        break;
-      case 'Distance':
-        // Sort by distance (parse km value)
-        _filteredProperties.sort((a, b) {
-          final distA = double.parse((a['distance'] as String).split(' ')[0]);
-          final distB = double.parse((b['distance'] as String).split(' ')[0]);
-          return distA.compareTo(distB);
-        });
-        break;
-      default:
-        // Relevance - keep original order
-        break;
-    }
-  }
 
-  void _toggleSaveProperty(int propertyId) {
-    setState(() {
-      final index = _filteredProperties.indexWhere(
-        (p) => p['id'] == propertyId,
-      );
-      if (index != -1) {
-        _filteredProperties[index]['isSaved'] =
-            !(_filteredProperties[index]['isSaved'] as bool);
-      }
-
-      final allIndex = _allProperties.indexWhere((p) => p['id'] == propertyId);
-      if (allIndex != -1) {
-        _allProperties[allIndex]['isSaved'] =
-            !(_allProperties[allIndex]['isSaved'] as bool);
-      }
-    });
-  }
 
   void _showFilterModal() {
     showModalBottomSheet(
@@ -326,7 +110,6 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
         onSortSelected: (sort) {
           setState(() {
             _selectedSort = sort;
-            _applySorting();
           });
         },
       ),
@@ -339,7 +122,7 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
     });
   }
 
-  void _navigateToPropertyDetails(Map<String, dynamic> property) {
+  void _navigateToPropertyDetails(Property property) {
     Navigator.of(
       context,
       rootNavigator: true,
@@ -349,6 +132,7 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final propertiesAsync = ref.watch(propertyListProvider(_activeFilters));
 
     return Column(
       children: [
@@ -360,7 +144,6 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
           onSearchSubmitted: _onSearchSubmitted,
           onHistoryItemTap: (query) {
             _searchController.text = query;
-            _onSearchChanged(query);
           },
         ),
 
@@ -371,7 +154,6 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
           onChipRemoved: (filterKey) {
             setState(() {
               _activeFilters[filterKey] = null;
-              _applyFilters(_activeFilters);
             });
           },
         ),
@@ -391,11 +173,15 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${_filteredProperties.length} properties found',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              propertiesAsync.when(
+                data: (properties) => Text(
+                  '${properties.length} properties found',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
               Row(
                 children: [
@@ -487,69 +273,84 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
 
         // Content Area
         Expanded(
-          child: _isMapView ? _buildMapView(theme) : _buildListView(theme),
+          child: propertiesAsync.when(
+            data: (properties) {
+              if (properties.isEmpty) {
+                return _buildEmptyState(theme);
+              }
+              return _isMapView 
+                  ? _buildMapView(theme, properties) 
+                  : _buildListView(theme, properties);
+            },
+            loading: () => Center(
+              child: CircularProgressIndicator(color: theme.colorScheme.primary),
+            ),
+            error: (error, _) => Center(
+              child: Text('Error: $error'),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildListView(ThemeData theme) {
-    if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: theme.colorScheme.primary),
-      );
-    }
-
-    if (_filteredProperties.isEmpty) {
-      return _buildEmptyState(theme);
-    }
-
+  Widget _buildListView(ThemeData theme, List<Property> properties) {
     return ListView.builder(
       controller: _scrollController,
       padding: EdgeInsets.symmetric(vertical: 1.h),
-      itemCount: _filteredProperties.length,
+      itemCount: properties.length,
       itemBuilder: (context, index) {
-        final property = _filteredProperties[index];
+        final property = properties[index];
         return PropertyCardWidget(
           property: property,
           onTap: () => _navigateToPropertyDetails(property),
-          onSaveToggle: () => _toggleSaveProperty(property['id'] as int),
+          onSaveToggle: () {
+            // Implement save toggle logic
+          },
         );
       },
     );
   }
 
-  Widget _buildMapView(ThemeData theme) {
-    return Container(
-      color: theme.colorScheme.surfaceContainerHighest,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CustomIconWidget(
-              iconName: 'map',
-              size: 64,
-              color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              'Map View',
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              'Interactive map with property pins',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
+  Widget _buildMapView(ThemeData theme, List<Property> properties) {
+    // Calculate center of all properties or default to Lagos
+    final center = properties.isNotEmpty
+        ? latlong.LatLng(
+            properties.map((p) => p.latitude).reduce((a, b) => a + b) /
+                properties.length,
+            properties.map((p) => p.longitude).reduce((a, b) => a + b) /
+                properties.length,
+          )
+        : const latlong.LatLng(6.5244, 3.3792);
+
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: center,
+        initialZoom: 12,
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.freddie.app',
+        ),
+        MarkerLayer(
+          markers: properties.map((property) {
+            return Marker(
+              point: latlong.LatLng(property.latitude, property.longitude),
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _navigateToPropertyDetails(property),
+                child: CustomIconWidget(
+                  iconName: 'location_on',
+                  color: theme.colorScheme.primary,
+                  size: 40,
                 ),
               ),
-            ),
-          ],
+            );
+          }).toList(),
         ),
-      ),
+      ],
     );
   }
 
@@ -586,12 +387,12 @@ class _PropertySearchScreenState extends State<PropertySearchScreen> {
                 setState(() {
                   _searchController.clear();
                   _activeFilters = {
+                    'query': '',
                     'propertyType': null,
-                    'priceRange': [0.0, 50000000.0],
-                    'location': null,
+                    'minPrice': 0.0,
+                    'maxPrice': 50000000.0,
                     'bedrooms': null,
                   };
-                  _filteredProperties = List.from(_allProperties);
                 });
               },
               child: const Text('Clear All Filters'),

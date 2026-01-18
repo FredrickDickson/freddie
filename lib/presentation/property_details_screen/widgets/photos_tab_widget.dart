@@ -2,43 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../core/models/property_model.dart';
 
 /// Photos tab displaying property images in grid layout
 class PhotosTabWidget extends StatelessWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const PhotosTabWidget({Key? key, required this.property}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final images = property["images"] as List<dynamic>;
+    final images = property.images;
+
+    if (images.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CustomIconWidget(
+              iconName: 'image_not_supported',
+              size: 64,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              'No photos available',
+              style: theme.textTheme.titleMedium,
+            ),
+          ],
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Virtual Tour Button
-          if (property["hasVirtualTour"] == true) ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _openVirtualTour(context),
-                icon: CustomIconWidget(
-                  iconName: 'view_in_ar',
-                  color: theme.colorScheme.onPrimary,
-                  size: 20,
-                ),
-                label: const Text('View Virtual Tour'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 1.5.h),
-                ),
-              ),
-            ),
-            SizedBox(height: 2.h),
-          ],
-
           // Photos Grid
           GridView.builder(
             shrinkWrap: true,
@@ -51,17 +52,17 @@ class PhotosTabWidget extends StatelessWidget {
             ),
             itemCount: images.length,
             itemBuilder: (context, index) {
-              final image = images[index] as Map<String, dynamic>;
+              final imageUrl = images[index];
               return GestureDetector(
                 onTap: () => _openFullScreenGallery(context, index),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: CustomImageWidget(
-                    imageUrl: image["url"] as String,
+                    imageUrl: imageUrl,
                     width: double.infinity,
                     height: double.infinity,
                     fit: BoxFit.cover,
-                    semanticLabel: image["semanticLabel"] as String,
+                    semanticLabel: '${property.title} - Image ${index + 1}',
                   ),
                 ),
               );
@@ -72,29 +73,12 @@ class PhotosTabWidget extends StatelessWidget {
     );
   }
 
-  void _openVirtualTour(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Virtual Tour'),
-        content: const Text(
-          'Virtual tour feature will open the 360° property view',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _openFullScreenGallery(BuildContext context, int initialIndex) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FullScreenGallery(
-          images: property["images"] as List<dynamic>,
+          images: property.images,
+          title: property.title,
           initialIndex: initialIndex,
         ),
       ),
@@ -104,10 +88,15 @@ class PhotosTabWidget extends StatelessWidget {
 
 /// Full-screen gallery viewer
 class _FullScreenGallery extends StatefulWidget {
-  final List<dynamic> images;
+  final List<String> images;
+  final String title;
   final int initialIndex;
 
-  const _FullScreenGallery({required this.images, required this.initialIndex});
+  const _FullScreenGallery({
+    required this.images,
+    required this.title,
+    required this.initialIndex,
+  });
 
   @override
   State<_FullScreenGallery> createState() => _FullScreenGalleryState();
@@ -162,17 +151,17 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
         },
         itemCount: widget.images.length,
         itemBuilder: (context, index) {
-          final image = widget.images[index] as Map<String, dynamic>;
+          final imageUrl = widget.images[index];
           return InteractiveViewer(
             minScale: 0.5,
             maxScale: 4.0,
             child: Center(
               child: CustomImageWidget(
-                imageUrl: image["url"] as String,
+                imageUrl: imageUrl,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.contain,
-                semanticLabel: image["semanticLabel"] as String,
+                semanticLabel: '${widget.title} - Image ${index + 1}',
               ),
             ),
           );

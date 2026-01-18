@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
@@ -25,9 +26,8 @@ class LocationStepWidget extends StatefulWidget {
 
 class _LocationStepWidgetState extends State<LocationStepWidget> {
   final TextEditingController _addressController = TextEditingController();
-  GoogleMapController? _mapController;
-  LatLng _currentPosition = const LatLng(6.5244, 3.3792); // Lagos, Nigeria
-  Set<Marker> _markers = {};
+  final MapController _mapController = MapController();
+  latlong.LatLng _currentPosition = const latlong.LatLng(6.5244, 3.3792); // Lagos, Nigeria
 
   @override
   void initState() {
@@ -36,37 +36,20 @@ class _LocationStepWidgetState extends State<LocationStepWidget> {
       _addressController.text = widget.address!;
     }
     if (widget.latitude != null && widget.longitude != null) {
-      _currentPosition = LatLng(widget.latitude!, widget.longitude!);
-      _updateMarker(_currentPosition);
+      _currentPosition = latlong.LatLng(widget.latitude!, widget.longitude!);
     }
   }
 
   @override
   void dispose() {
     _addressController.dispose();
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
-  void _updateMarker(LatLng position) {
-    setState(() {
-      _markers = {
-        Marker(
-          markerId: const MarkerId('property_location'),
-          position: position,
-          draggable: true,
-          onDragEnd: (newPosition) {
-            _onLocationSelected(newPosition);
-          },
-        ),
-      };
-    });
-  }
-
-  void _onLocationSelected(LatLng position) {
+  void _onLocationSelected(latlong.LatLng position) {
     setState(() {
       _currentPosition = position;
-      _updateMarker(position);
     });
 
     final address =
@@ -76,8 +59,8 @@ class _LocationStepWidgetState extends State<LocationStepWidget> {
   }
 
   void _useCurrentLocation() {
-    final position = const LatLng(6.5244, 3.3792);
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(position, 15));
+    final position = const latlong.LatLng(6.5244, 3.3792);
+    _mapController.move(position, 15);
     _onLocationSelected(position);
   }
 
@@ -139,19 +122,33 @@ class _LocationStepWidgetState extends State<LocationStepWidget> {
           Container(
             height: 40.h,
             width: double.infinity,
-            child: GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentPosition,
-                zoom: 15,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentPosition,
+                initialZoom: 15,
+                onTap: (tapPosition, point) => _onLocationSelected(point),
               ),
-              markers: _markers,
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
-              onTap: _onLocationSelected,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: true,
-              mapToolbarEnabled: false,
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.freddie.app',
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _currentPosition,
+                      width: 40,
+                      height: 40,
+                      child: CustomIconWidget(
+                        iconName: 'location_on',
+                        color: theme.colorScheme.primary,
+                        size: 40,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           Padding(
@@ -176,7 +173,7 @@ class _LocationStepWidgetState extends State<LocationStepWidget> {
                       SizedBox(width: 2.w),
                       Expanded(
                         child: Text(
-                          'Tap on the map or drag the marker to set exact location',
+                          'Tap on the map to set exact location',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.primary,
                           ),

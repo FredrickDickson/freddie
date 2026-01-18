@@ -2,19 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../core/models/property_model.dart';
+import '../../../widgets/custom_icon_widget.dart';
 
 /// Reviews tab displaying property ratings and user reviews
 class ReviewsTabWidget extends StatelessWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const ReviewsTabWidget({Key? key, required this.property}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reviews = property["reviews"] as List<dynamic>;
-    final averageRating = property["averageRating"] as double;
+    final reviews = property.reviews;
+    final averageRating = property.averageRating;
     final totalReviews = reviews.length;
+
+    if (reviews.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CustomIconWidget(
+              iconName: 'rate_review',
+              size: 64,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              'No reviews yet',
+              style: theme.textTheme.titleMedium,
+            ),
+            SizedBox(height: 1.h),
+            Text(
+              'Be the first to review this property!',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
@@ -74,7 +103,7 @@ class ReviewsTabWidget extends StatelessWidget {
             itemCount: reviews.length,
             separatorBuilder: (context, index) => SizedBox(height: 2.h),
             itemBuilder: (context, index) {
-              final review = reviews[index] as Map<String, dynamic>;
+              final review = reviews[index];
               return _buildReviewCard(review, theme);
             },
           ),
@@ -97,12 +126,13 @@ class ReviewsTabWidget extends StatelessWidget {
   }
 
   Widget _buildRatingBreakdown(ThemeData theme) {
-    final breakdown = property["ratingBreakdown"] as Map<String, dynamic>;
+    final breakdown = property.ratingBreakdown;
 
     return Column(
       children: [5, 4, 3, 2, 1].map((star) {
-        final count = breakdown["$star"] as int;
-        final percentage = (count / (property["reviews"] as List).length) * 100;
+        final count = breakdown["$star"] ?? 0;
+        final totalReviews = property.reviews.length;
+        final percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0.0;
 
         return Padding(
           padding: EdgeInsets.symmetric(vertical: 0.5.h),
@@ -154,13 +184,21 @@ class ReviewsTabWidget extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                child: CustomImageWidget(
-                  imageUrl: review["userAvatar"] as String,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                  semanticLabel: review["userAvatarLabel"] as String,
-                ),
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: review["userAvatar"] != null
+                    ? ClipOval(
+                        child: CustomImageWidget(
+                          imageUrl: review["userAvatar"] as String,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                          semanticLabel: review["userName"] as String,
+                        ),
+                      )
+                    : Text(
+                        (review["userName"] as String)[0].toUpperCase(),
+                        style: TextStyle(color: theme.colorScheme.primary),
+                      ),
               ),
               SizedBox(width: 3.w),
               Expanded(
@@ -183,7 +221,7 @@ class ReviewsTabWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              _buildStarRating(review["rating"] as double, theme),
+              _buildStarRating((review["rating"] as num).toDouble(), theme),
             ],
           ),
           SizedBox(height: 1.5.h),

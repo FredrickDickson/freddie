@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/models/property_model.dart';
 import './location_tab_widget.dart';
 import './overview_tab_widget.dart';
 import './photos_tab_widget.dart';
@@ -7,7 +8,7 @@ import './reviews_tab_widget.dart';
 
 /// Tabbed interface for property details content
 class PropertyTabsWidget extends StatefulWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const PropertyTabsWidget({Key? key, required this.property})
     : super(key: key);

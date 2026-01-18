@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../core/models/property_model.dart';
 
 /// Full-width image gallery with horizontal swipe and page indicators
 class ImageGalleryWidget extends StatefulWidget {
-  final List<Map<String, dynamic>> images;
+  final Property property;
 
-  const ImageGalleryWidget({Key? key, required this.images}) : super(key: key);
+  const ImageGalleryWidget({Key? key, required this.property}) : super(key: key);
 
   @override
   State<ImageGalleryWidget> createState() => _ImageGalleryWidgetState();
@@ -26,6 +27,20 @@ class _ImageGalleryWidgetState extends State<ImageGalleryWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final images = widget.property.images;
+
+    if (images.isEmpty) {
+      return SizedBox(
+        height: 30.h,
+        child: Center(
+          child: CustomIconWidget(
+            iconName: 'image_not_supported',
+            size: 64,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      );
+    }
 
     return SizedBox(
       height: 30.h,
@@ -39,19 +54,19 @@ class _ImageGalleryWidgetState extends State<ImageGalleryWidget> {
                 _currentPage = index;
               });
             },
-            itemCount: widget.images.length,
+            itemCount: images.length,
             itemBuilder: (context, index) {
-              final image = widget.images[index];
+              final imageUrl = images[index];
               return GestureDetector(
                 onTap: () {
                   _showFullScreenImage(context, index);
                 },
                 child: CustomImageWidget(
-                  imageUrl: image["url"] as String,
+                  imageUrl: imageUrl,
                   width: double.infinity,
                   height: 30.h,
                   fit: BoxFit.cover,
-                  semanticLabel: image["semanticLabel"] as String,
+                  semanticLabel: '${widget.property.title} - Image ${index + 1}',
                 ),
               );
             },
@@ -65,7 +80,7 @@ class _ImageGalleryWidgetState extends State<ImageGalleryWidget> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                widget.images.length,
+                images.length,
                 (index) => Container(
                   margin: EdgeInsets.symmetric(horizontal: 0.5.w),
                   width: _currentPage == index ? 8.w : 2.w,
@@ -92,7 +107,7 @@ class _ImageGalleryWidgetState extends State<ImageGalleryWidget> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '${_currentPage + 1}/${widget.images.length}',
+                '${_currentPage + 1}/${images.length}',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -109,7 +124,8 @@ class _ImageGalleryWidgetState extends State<ImageGalleryWidget> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _FullScreenGallery(
-          images: widget.images,
+          images: widget.property.images,
+          title: widget.property.title,
           initialIndex: initialIndex,
         ),
       ),
@@ -119,10 +135,15 @@ class _ImageGalleryWidgetState extends State<ImageGalleryWidget> {
 
 /// Full-screen image gallery viewer
 class _FullScreenGallery extends StatefulWidget {
-  final List<Map<String, dynamic>> images;
+  final List<String> images;
+  final String title;
   final int initialIndex;
 
-  const _FullScreenGallery({required this.images, required this.initialIndex});
+  const _FullScreenGallery({
+    required this.images,
+    required this.title,
+    required this.initialIndex,
+  });
 
   @override
   State<_FullScreenGallery> createState() => _FullScreenGalleryState();
@@ -177,17 +198,17 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
         },
         itemCount: widget.images.length,
         itemBuilder: (context, index) {
-          final image = widget.images[index];
+          final imageUrl = widget.images[index];
           return InteractiveViewer(
             minScale: 0.5,
             maxScale: 4.0,
             child: Center(
               child: CustomImageWidget(
-                imageUrl: image["url"] as String,
+                imageUrl: imageUrl,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.contain,
-                semanticLabel: image["semanticLabel"] as String,
+                semanticLabel: '${widget.title} - Image ${index + 1}',
               ),
             ),
           );

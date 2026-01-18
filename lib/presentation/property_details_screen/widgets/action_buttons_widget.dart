@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
+import '../../../core/models/property_model.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
 /// Action buttons for contacting owner and scheduling viewing
 class ActionButtonsWidget extends StatelessWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const ActionButtonsWidget({Key? key, required this.property})
     : super(key: key);
@@ -86,7 +87,7 @@ class ActionButtonsWidget extends StatelessWidget {
 
 /// Bottom sheet for scheduling property viewing
 class _ScheduleViewingSheet extends StatefulWidget {
-  final Map<String, dynamic> property;
+  final Property property;
 
   const _ScheduleViewingSheet({required this.property});
 
