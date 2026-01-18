@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sizer/sizer.dart';
 
@@ -120,6 +121,8 @@ class _AuthenticationScreenState extends ConsumerState<AuthenticationScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.isLoading;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -143,7 +146,7 @@ class _AuthenticationScreenState extends ConsumerState<AuthenticationScreen>
                   SocialLoginWidget(
                     onGoogleLogin: () => _handleSocialLogin('Google'),
                     onFacebookLogin: () => _handleSocialLogin('Facebook'),
-                    isLoading: _isLoading,
+                    isLoading: isLoading,
                   ),
                   SizedBox(height: 2.h),
                 ],

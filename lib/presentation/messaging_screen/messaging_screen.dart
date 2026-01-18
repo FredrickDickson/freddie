@@ -26,7 +26,6 @@ class _MessagingScreenState extends State<MessagingScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   bool _isConversationView = false;
-  bool _isTyping = false;
   bool _showTypingIndicator = false;
   Map<String, dynamic>? _selectedConversation;
 
@@ -259,7 +258,6 @@ class _MessagingScreenState extends State<MessagingScreen> {
         "status": "sent",
       });
       _messageController.clear();
-      _isTyping = false;
       _showTypingIndicator = true;
     });
 
@@ -722,7 +720,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
             onSend: _sendMessage,
             onAttachment: _showAttachmentOptions,
             onTypingChanged: (isTyping) {
-              setState(() => _isTyping = isTyping);
+              // Handle typing status
             },
           ),
         ],

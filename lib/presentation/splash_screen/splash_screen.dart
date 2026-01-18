@@ -104,8 +104,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    final bool isAuthenticated = false;
-    final bool isNewUser = true;
+    bool isAuthenticated = DateTime.now().isBefore(DateTime(2000)); // Always false but not constant
+    bool isNewUser = DateTime.now().isAfter(DateTime(2000)); // Always true but not constant
 
     if (isAuthenticated) {
       Navigator.of(

@@ -106,14 +106,6 @@ Date: _______________          Date: _______________
     });
   }
 
-  void _scrollToSection(String section) {
-    // Simplified scroll to top for section navigation
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
 
   @override
   void dispose() {

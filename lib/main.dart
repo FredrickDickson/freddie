@@ -1,7 +1,11 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sizer/sizer.dart';
 
 import '../core/app_export.dart';
+import '../core/services/ai_service.dart';
 import '../widgets/custom_error_widget.dart';
 
 void main() async {
@@ -15,6 +19,9 @@ void main() async {
     url: EnvConfig.supabaseUrl,
     anonKey: EnvConfig.supabaseAnonKey,
   );
+
+  // Initialize AI Service
+  AiService().initialize();
 
   bool _hasShownError = false;
 
@@ -44,6 +51,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Sizer(

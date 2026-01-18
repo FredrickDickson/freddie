@@ -14,10 +14,14 @@ final userProvider = Provider<User?>((ref) {
   return ref.watch(authRepositoryProvider).currentUser;
 });
 
-class AuthNotifier extends StateNotifier<AsyncValue<void>> {
-  final AuthRepository _repository;
+class AuthNotifier extends Notifier<AsyncValue<void>> {
+  late final AuthRepository _repository;
 
-  AuthNotifier(this._repository) : super(const AsyncValue.data(null));
+  @override
+  AsyncValue<void> build() {
+    _repository = ref.watch(authRepositoryProvider);
+    return const AsyncValue.data(null);
+  }
 
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
@@ -35,6 +39,4 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final authNotifierProvider = StateNotifierProvider<AuthNotifier, AsyncValue<void>>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
-});
+final authNotifierProvider = NotifierProvider<AuthNotifier, AsyncValue<void>>(AuthNotifier.new);

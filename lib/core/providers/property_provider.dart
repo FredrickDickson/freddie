@@ -25,10 +25,14 @@ final propertyDetailsProvider = FutureProvider.family<Property, String>((ref, id
   return ref.watch(propertyRepositoryProvider).getPropertyById(id);
 });
 
-class PropertyNotifier extends StateNotifier<AsyncValue<void>> {
-  final PropertyRepository _repository;
+class PropertyNotifier extends Notifier<AsyncValue<void>> {
+  late final PropertyRepository _repository;
 
-  PropertyNotifier(this._repository) : super(const AsyncValue.data(null));
+  @override
+  AsyncValue<void> build() {
+    _repository = ref.watch(propertyRepositoryProvider);
+    return const AsyncValue.data(null);
+  }
 
   Future<void> createProperty(Property property, List<File> imageFiles) async {
     state = const AsyncValue.loading();
@@ -46,6 +50,4 @@ class PropertyNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-final propertyNotifierProvider = StateNotifierProvider<PropertyNotifier, AsyncValue<void>>((ref) {
-  return PropertyNotifier(ref.watch(propertyRepositoryProvider));
-});
+final propertyNotifierProvider = NotifierProvider<PropertyNotifier, AsyncValue<void>>(PropertyNotifier.new);

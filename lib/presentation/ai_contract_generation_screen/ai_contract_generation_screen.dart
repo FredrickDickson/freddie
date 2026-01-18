@@ -4,6 +4,8 @@ import 'package:sizer/sizer.dart';
 import '../../core/app_export.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../core/services/ai_service.dart';
+import './widgets/gen_ui_form_widget.dart';
 import './widgets/ai_suggestion_widget.dart';
 import './widgets/contract_form_section_widget.dart';
 import './widgets/contract_preview_widget.dart';
@@ -26,10 +28,11 @@ class _AiContractGenerationScreenState
   int _currentStep = 0;
   String _selectedContractType = '';
   bool _isGenerating = false;
-  bool _isPreviewMode = false;
-  bool _isSigningMode = false;
+  // State variables
   final Map<String, dynamic> _formData = {};
   final List<Map<String, dynamic>> _aiSuggestions = [];
+  List<Map<String, dynamic>> _genUiSteps = [];
+  bool _useGenUi = true; // Toggle for GenUI mode
 
   // Mock contract templates
   final List<Map<String, dynamic>> _contractTemplates = [
@@ -219,41 +222,26 @@ class _AiContractGenerationScreenState
     },
   ];
 
-  // Mock AI suggestions
-  void _generateAISuggestions() {
+  // AI suggestions
+  Future<void> _generateAISuggestions() async {
+    final suggestions = await AiService().getContractSuggestions(_formData);
     setState(() {
       _aiSuggestions.clear();
-      _aiSuggestions.addAll([
-        {
-          "field": "securityDeposit",
-          "suggestion": "₦1,000,000",
-          "reason":
-              "Standard practice in Lagos is 2x monthly rent for security deposit",
-          "confidence": 0.95,
-        },
-        {
-          "field": "leaseDuration",
-          "suggestion": "1 Year",
-          "reason":
-              "Most common lease duration for residential properties in Nigeria",
-          "confidence": 0.92,
-        },
-        {
-          "field": "additionalTerms",
-          "suggestion":
-              "Include clause about property maintenance and repair responsibilities",
-          "reason": "Protects both parties and reduces future disputes",
-          "confidence": 0.88,
-        },
-      ]);
+      _aiSuggestions.addAll(suggestions);
     });
   }
 
-  void _selectContractTemplate(String templateId) {
+  Future<void> _selectContractTemplate(String templateId) async {
     setState(() {
       _selectedContractType = templateId;
       _currentStep = 1;
-      _generateAISuggestions();
+    });
+    
+    _generateAISuggestions();
+    
+    final steps = await AiService().getGenUiForm(templateId);
+    setState(() {
+      _genUiSteps = steps;
       // Auto-fill form data
       for (var section in _formSections) {
         for (var field in (section["fields"] as List)) {
@@ -283,19 +271,23 @@ class _AiContractGenerationScreenState
       _isGenerating = true;
     });
 
-    // Simulate AI processing
-    await Future.delayed(const Duration(seconds: 3));
+    final result = await AiService().generateContract(_formData);
 
     setState(() {
       _isGenerating = false;
-      _isPreviewMode = true;
-      _currentStep = 2;
+      if (result['status'] == 'success') {
+        _currentStep = 2;
+      } else {
+        // Handle error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating contract: ${result['error']}')),
+        );
+      }
     });
   }
 
   void _proceedToSigning() {
     setState(() {
-      _isSigningMode = true;
       _currentStep = 3;
     });
   }
@@ -440,7 +432,17 @@ class _AiContractGenerationScreenState
   }
 
   Widget _buildFormFilling() {
+    if (_useGenUi && _genUiSteps.isNotEmpty) {
+      return GenUiFormWidget(
+        steps: _genUiSteps,
+        formData: _formData,
+        onFieldChanged: _updateFormData,
+        onComplete: _generateContract,
+      );
+    }
+
     final theme = Theme.of(context);
+    // ... existing static form implementation ...
 
     return Column(
       children: [
@@ -569,7 +571,6 @@ class _AiContractGenerationScreenState
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() {
-                        _isPreviewMode = false;
                         _currentStep = 1;
                       });
                     },

@@ -3,7 +3,6 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/app_export.dart';
 import '../../../core/models/property_model.dart';
-import '../../../widgets/custom_icon_widget.dart';
 
 /// Reviews tab displaying property ratings and user reviews
 class ReviewsTabWidget extends StatelessWidget {
